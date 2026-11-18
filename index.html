@@ -1,0 +1,1842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinWise – Smart Personal Finance Manager</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#0b0f19',
+                        darkCard: '#131b2e',
+                        darkBorder: '#1e293b',
+                        accentPurple: '#8B5CF6',
+                        accentCyan: '#06B6D4',
+                        accentAmber: '#F59E0B',
+                        accentGreen: '#16A34A',
+                        accentRed: '#EF4444'
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Tone.js for Sound Effects -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0b0f19;
+            color: #f3f4f6;
+            overflow-x: hidden;
+        }
+        /* Glossy Glassmorphism Styles */
+        .glass-card {
+            background: rgba(19, 27, 46, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+        .glass-header {
+            background: rgba(11, 15, 25, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .glass-sidebar {
+            background: rgba(15, 22, 38, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .glossy-button {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.9) 0%, rgba(99, 102, 241, 0.9) 100%);
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+            transition: all 0.2s ease;
+        }
+        .glossy-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0b0f19;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #334155;
+        }
+        /* Duck Animations */
+        @keyframes floatDuck {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-6px) rotate(1.5deg); }
+        }
+        .duck-float {
+            animation: floatDuck 4s ease-in-out infinite;
+        }
+        @keyframes bounceSoft {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        .duck-celebrate {
+            animation: bounceSoft 0.6s ease-in-out infinite;
+        }
+        @keyframes pulseGlow {
+            0%, 100% { filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.4)); }
+            50% { filter: drop-shadow(0 0 16px rgba(139, 92, 246, 0.8)); }
+        }
+        .duck-glow {
+            animation: pulseGlow 3s ease-in-out infinite;
+        }
+
+
+        /* ===== FINWISE PREMIUM UI + AUTH ADD-ON ===== */
+        :root {
+            --fw-accent: #a78bfa;
+            --fw-accent-2: #22d3ee;
+            --fw-accent-rgb: 167, 139, 250;
+        }
+
+        /* The dashboard stays hidden until a real authenticated session exists. */
+        #app { display: none; }
+        #app.finwise-authenticated { display: flex !important; }
+        #auth-screen[hidden] { display: none !important; }
+
+        body {
+            background:
+                radial-gradient(circle at 7% 4%, rgba(var(--fw-accent-rgb), .15), transparent 32%),
+                radial-gradient(circle at 94% 88%, rgba(34, 211, 238, .075), transparent 34%),
+                #0b0f19;
+        }
+
+        .glass-card {
+            background: linear-gradient(145deg, rgba(255,255,255,.065), rgba(255,255,255,.012)), rgba(19,27,46,.78);
+            border: 1px solid rgba(255,255,255,.10);
+            box-shadow: 0 12px 34px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,255,255,.055);
+            transition: transform .28s ease, border-color .28s ease, box-shadow .28s ease;
+        }
+        .glass-card:hover {
+            transform: translateY(-3px);
+            border-color: rgba(var(--fw-accent-rgb), .36);
+            box-shadow: 0 17px 42px rgba(0,0,0,.3), 0 0 22px rgba(var(--fw-accent-rgb), .08);
+        }
+        .glass-header {
+            background: rgba(11,15,25,.78);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border-bottom: 1px solid rgba(255,255,255,.09);
+        }
+        .glass-sidebar {
+            background: rgba(13,19,33,.88);
+            backdrop-filter: blur(22px);
+            -webkit-backdrop-filter: blur(22px);
+        }
+        .glossy-button {
+            position: relative;
+            overflow: hidden;
+            isolation: isolate;
+            background: linear-gradient(125deg, var(--fw-accent), var(--fw-accent-2));
+            border: 1px solid rgba(255,255,255,.24);
+            box-shadow: 0 8px 22px rgba(var(--fw-accent-rgb), .24), inset 0 1px 0 rgba(255,255,255,.34);
+            transition: transform .22s ease, box-shadow .22s ease, filter .22s ease;
+        }
+        .glossy-button::before {
+            content: "";
+            position: absolute;
+            top: -65%; left: -75%; width: 42%; height: 230%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,.42), transparent);
+            transform: rotate(25deg);
+            transition: left .7s ease;
+            z-index: -1;
+        }
+        .glossy-button:hover::before { left: 140%; }
+        .glossy-button:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(var(--fw-accent-rgb), .34), inset 0 1px 0 rgba(255,255,255,.4); }
+        .glossy-button:active { transform: scale(.985); }
+        .nav-item { transition: transform .22s ease, background .22s ease, color .22s ease; }
+        .nav-item:hover { transform: translateX(3px); }
+        .nav-item.text-purple-400 {
+            color: var(--fw-accent) !important;
+            background: rgba(var(--fw-accent-rgb), .13) !important;
+            border-color: rgba(var(--fw-accent-rgb), .30) !important;
+        }
+        button:focus-visible, input:focus-visible, select:focus-visible {
+            outline: 2px solid var(--fw-accent);
+            outline-offset: 3px;
+        }
+
+        /* Accent palette picker */
+        .finwise-theme-control { position: relative; }
+        .finwise-theme-toggle {
+            width: 40px; height: 40px; border-radius: 13px;
+            color: var(--fw-accent); background: rgba(255,255,255,.055);
+            border: 1px solid rgba(255,255,255,.12); transition: .22s ease;
+        }
+        .finwise-theme-toggle:hover { background: rgba(var(--fw-accent-rgb), .15); transform: rotate(10deg); }
+        .finwise-theme-panel {
+            position: absolute; top: 49px; right: 0; z-index: 90; width: 188px;
+            padding: 11px; border-radius: 16px; background: rgba(15,22,38,.97);
+            border: 1px solid rgba(255,255,255,.13); backdrop-filter: blur(22px);
+            box-shadow: 0 18px 44px rgba(0,0,0,.42);
+        }
+        .finwise-theme-panel[hidden] { display: none !important; }
+        .fw-theme-heading { color: #94a3b8; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; padding: 5px 8px 9px; }
+        .fw-theme-option { display:flex; align-items:center; gap:10px; width:100%; padding:9px; border-radius:10px; color:#e5e7eb; font-size:12px; text-align:left; }
+        .fw-theme-option:hover { background: rgba(255,255,255,.08); }
+        .fw-theme-dot { width:13px; height:13px; border-radius:50%; box-shadow: 0 0 12px rgba(255,255,255,.16); }
+
+        /* Login / registration surface */
+        .auth-page {
+            position: fixed; inset: 0; z-index: 120; min-height: 100vh;
+            display: grid; place-items: center; padding: 28px; overflow-y: auto;
+            background:
+                radial-gradient(circle at 13% 12%, rgba(var(--fw-accent-rgb), .20), transparent 35%),
+                radial-gradient(circle at 90% 88%, rgba(34,211,238,.12), transparent 34%),
+                #080b14;
+        }
+        .auth-shell { width: min(100%, 1040px); display:grid; grid-template-columns:1.05fr .95fr; gap:48px; align-items:center; margin:auto; }
+        .auth-brand { display:flex; align-items:center; gap:11px; color:white; font-size:25px; font-weight:800; margin-bottom:48px; }
+        .auth-duck { font-size:34px; filter: drop-shadow(0 5px 12px rgba(var(--fw-accent-rgb), .24)); }
+        .auth-brand-tag { font-size:9px; letter-spacing:.12em; color:#94a3b8; border:1px solid rgba(255,255,255,.14); border-radius:30px; padding:5px 8px; }
+        .auth-kicker { font-size:10px; font-weight:700; letter-spacing:.22em; color:var(--fw-accent); }
+        .auth-intro h1 { color:white; font-size:clamp(38px,5vw,62px); line-height:1.08; font-weight:850; margin:18px 0; letter-spacing:-.04em; }
+        .auth-intro h1 span { display:block; background:linear-gradient(100deg,var(--fw-accent),var(--fw-accent-2)); background-clip:text; -webkit-background-clip:text; color:transparent; }
+        .auth-description { max-width:440px; color:#9ca3af; line-height:1.85; font-size:14px; }
+        .auth-feature { display:inline-flex; align-items:center; gap:10px; margin:13px 9px 0 0; padding:11px 14px; border-radius:30px; color:#d1d5db; background:rgba(255,255,255,.045); border:1px solid rgba(255,255,255,.09); font-size:11px; }
+        .auth-feature i { color:var(--fw-accent); }
+        .auth-card { width:100%; max-width:450px; padding:34px; border-radius:26px; background:linear-gradient(145deg,rgba(255,255,255,.07),rgba(255,255,255,.015)),rgba(19,27,46,.82); border:1px solid rgba(255,255,255,.13); backdrop-filter:blur(24px); box-shadow:0 28px 85px rgba(0,0,0,.44),inset 0 1px 0 rgba(255,255,255,.08); }
+        .auth-card-topline { display:flex; align-items:center; gap:8px; color:#94a3b8; font-size:9px; letter-spacing:.16em; margin-bottom:18px; }
+        .auth-live-dot { width:7px; height:7px; background:#34d399; border-radius:50%; box-shadow:0 0 12px #34d399; }
+        .auth-card h2 { color:white; font-size:26px; font-weight:800; }
+        .auth-card > p { color:#94a3b8; font-size:12px; margin-top:7px; line-height:1.6; }
+        .auth-tabs { display:grid; grid-template-columns:1fr 1fr; gap:5px; padding:5px; margin:24px 0; border-radius:13px; background:rgba(0,0,0,.23); }
+        .auth-tab { padding:11px; color:#94a3b8; border-radius:9px; font-size:12px; font-weight:650; transition:.2s ease; }
+        .auth-tab.active { color:white; background:rgba(var(--fw-accent-rgb),.22); box-shadow:inset 0 0 0 1px rgba(var(--fw-accent-rgb),.25); }
+        .auth-field { margin-bottom:16px; }
+        .auth-card label { display:block; color:#cbd5e1; font-size:11px; margin-bottom:8px; }
+        .auth-input { width:100%; padding:13px 14px; border-radius:11px; color:white; background:rgba(0,0,0,.24); border:1px solid rgba(255,255,255,.13); outline:none; font-size:13px; transition:.2s ease; }
+        .auth-input::placeholder { color:#64748b; }
+        .auth-input:focus { border-color:var(--fw-accent); box-shadow:0 0 0 3px rgba(var(--fw-accent-rgb),.13); }
+        .auth-submit { width:100%; padding:14px; margin-top:5px; border-radius:12px; color:#fff; font-size:12px; font-weight:750; display:flex; align-items:center; justify-content:center; gap:10px; }
+        .auth-submit:disabled { opacity:.65; cursor:wait; }
+        .auth-forgot { display:block; margin:16px auto 0; color:var(--fw-accent); font-size:11px; }
+        .auth-forgot:hover { text-decoration:underline; }
+        .auth-message { min-height:34px; margin-top:14px !important; padding:8px 10px; border-radius:9px; color:#a7f3d0 !important; background:rgba(16,185,129,.07); font-size:11px !important; }
+        .auth-message.error { color:#fca5a5 !important; background:rgba(239,68,68,.08); }
+        .auth-message.info { color:#cbd5e1 !important; background:rgba(148,163,184,.09); }
+        .auth-footer { border-top:1px solid rgba(255,255,255,.08); padding-top:15px; margin-top:13px !important; text-align:center; font-size:10px !important; }
+        @media (max-width:780px) {
+            .auth-page { padding:18px; }
+            .auth-shell { grid-template-columns:1fr; gap:23px; max-width:460px; }
+            .auth-intro { text-align:center; }
+            .auth-brand { justify-content:center; margin-bottom:18px; }
+            .auth-intro h1 { font-size:35px; margin:10px 0; }
+            .auth-description, .auth-feature { display:none; }
+            .auth-card { padding:25px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *,*::before,*::after { animation-duration:.01ms !important; transition-duration:.01ms !important; }
+        }
+
+    </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-purple-500 selection:text-white">
+
+    <!-- FINWISE AUTHENTICATION SCREEN: shown until Supabase confirms a session -->
+    <section id="auth-screen" class="auth-page" aria-label="FinWise account access">
+        <div class="auth-shell">
+            <div class="auth-intro">
+                <div class="auth-brand">
+                    <span class="auth-duck" aria-hidden="true">🦆</span>
+                    <span>FinWise</span>
+                    <span class="auth-brand-tag">SMART MONEY HABITS</span>
+                </div>
+                <p class="auth-kicker">YOUR FINANCES, WITH A LITTLE MORE CLARITY</p>
+                <h1>Make your money <span>work for you.</span></h1>
+                <p class="auth-description">Keep track of spending, plan for what matters, and celebrate every savings milestone with your FinWise companion.</p>
+                <div class="auth-feature"><i class="fa-solid fa-shield-halved"></i> A private finance space for your account</div>
+                <div class="auth-feature"><i class="fa-solid fa-chart-line"></i> Small steps. Smarter money habits.</div>
+            </div>
+
+            <div class="auth-card">
+                <div class="auth-card-topline"><span class="auth-live-dot"></span> YOUR FINWISE SPACE</div>
+                <h2 id="auth-title">Welcome back!</h2>
+                <p id="auth-subtitle">Sign in to continue to your dashboard.</p>
+
+                <div id="auth-tabs" class="auth-tabs">
+                    <button type="button" id="auth-login-tab" class="auth-tab active" onclick="setFinWiseAuthMode('login')">Sign in</button>
+                    <button type="button" id="auth-signup-tab" class="auth-tab" onclick="setFinWiseAuthMode('signup')">Create account</button>
+                </div>
+
+                <form id="auth-form" novalidate>
+                    <div id="auth-name-wrap" class="auth-field" hidden>
+                        <label for="auth-name">Your name</label>
+                        <input id="auth-name" class="auth-input" type="text" autocomplete="name" placeholder="What should we call you?" maxlength="60">
+                    </div>
+                    <div class="auth-field">
+                        <label for="auth-email">Email address</label>
+                        <input id="auth-email" class="auth-input" type="email" required autocomplete="email" placeholder="you@example.com">
+                    </div>
+                    <div class="auth-field">
+                        <label for="auth-password">Password</label>
+                        <input id="auth-password" class="auth-input" type="password" required minlength="8" autocomplete="current-password" placeholder="At least 8 characters">
+                    </div>
+                    <div id="auth-confirm-wrap" class="auth-field" hidden>
+                        <label for="auth-confirm-password">Confirm password</label>
+                        <input id="auth-confirm-password" class="auth-input" type="password" minlength="8" autocomplete="new-password" placeholder="Enter your password again">
+                    </div>
+                    <button id="auth-submit" type="submit" class="glossy-button auth-submit">Sign in <i class="fa-solid fa-arrow-right"></i></button>
+                    <button id="auth-forgot" type="button" class="auth-forgot" onclick="sendFinWisePasswordReset()">Forgot password?</button>
+                </form>
+                <p id="auth-message" class="auth-message" role="status" aria-live="polite">Configure your Supabase project to activate account access.</p>
+                <p class="auth-footer">Your password is handled by Supabase Authentication. FinWise never stores it in browser code.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- App Container -->
+    <div id="app" class="flex h-screen w-full overflow-hidden">
+        
+        <!-- SIDEBAR -->
+        <aside id="sidebar" class="w-64 glass-sidebar flex flex-col z-30 transition-all duration-300">
+            <!-- Brand / Logo Area -->
+            <div class="h-20 flex items-center px-6 gap-3 border-b border-white/5">
+                <!-- Duck Mascot SVG Logo -->
+                <div class="w-10 h-10 relative duck-float cursor-pointer" onclick="triggerDuckTip()" title="Click me for financial wisdom!">
+                    <svg viewBox="0 0 100 100" class="w-full h-full drop-shadow-md">
+                        <!-- Body -->
+                        <path d="M35 75 C 30 75, 25 65, 28 50 C 30 35, 45 25, 60 30 C 75 35, 80 50, 75 68 C 72 78, 60 80, 50 80 Z" fill="#FFFFFF" stroke="#111" stroke-width="4" stroke-linejoin="round"/>
+                        <!-- Head -->
+                        <circle cx="62" cy="32" r="18" fill="#FFFFFF" stroke="#111" stroke-width="4"/>
+                        <!-- Eye -->
+                        <circle cx="68" cy="28" r="3" fill="#111"/>
+                        <circle cx="69" cy="27" r="1" fill="#FFF"/>
+                        <!-- Rosy Cheek -->
+                        <ellipse cx="61" cy="36" rx="4" ry="2.5" fill="#FDA4AF" opacity="0.8"/>
+                        <!-- Beak -->
+                        <path d="M 78 32 C 85 30, 92 34, 88 38 C 84 42, 80 38, 78 32 Z" fill="#F59E0B" stroke="#111" stroke-width="3" stroke-linejoin="round"/>
+                        <!-- Wing -->
+                        <path d="M 42 55 C 52 55, 60 62, 55 72 C 50 78, 40 72, 42 55 Z" fill="#F9FAFB" stroke="#111" stroke-width="3"/>
+                        <!-- Feet -->
+                        <path d="M 38 80 L 32 88 L 44 88 Z" fill="#F59E0B" stroke="#111" stroke-width="2.5"/>
+                        <path d="M 60 80 L 56 88 L 68 88 Z" fill="#F59E0B" stroke="#111" stroke-width="2.5"/>
+                        <!-- Flower in wing -->
+                        <g transform="translate(43, 62) scale(0.6)">
+                            <circle cx="10" cy="10" r="5" fill="#F59E0B"/>
+                            <circle cx="10" cy="2" r="4" fill="#F43F5E"/>
+                            <circle cx="10" cy="18" r="4" fill="#F43F5E"/>
+                            <circle cx="2" cy="10" r="4" fill="#F43F5E"/>
+                            <circle cx="18" cy="10" r="4" fill="#F43F5E"/>
+                            <circle cx="10" cy="10" r="2.5" fill="#FACC15"/>
+                        </g>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-1.5">
+                        FinWise <span class="text-xs px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 font-medium">Pro</span>
+                    </h1>
+                    <p class="text-xs text-slate-400">Smart Finance Companion</p>
+                </div>
+            </div>
+
+            <!-- Navigation Links -->
+            <nav class="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto">
+                <a href="#dashboard" onclick="switchTab('dashboard')" class="nav-item flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium transition-all text-purple-400 bg-purple-500/10 border border-purple-500/20 shadow-sm" data-tab="dashboard">
+                    <i class="fa-solid fa-chart-pie w-5 text-center"></i> Dashboard
+                </a>
+                <a href="#transactions" onclick="switchTab('transactions')" class="nav-item flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-white hover:bg-white/5" data-tab="transactions">
+                    <i class="fa-solid fa-receipt w-5 text-center"></i> Transactions
+                </a>
+                <a href="#budgets" onclick="switchTab('budgets')" class="nav-item flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-white hover:bg-white/5" data-tab="budgets">
+                    <i class="fa-solid fa-wallet w-5 text-center"></i> Budgets
+                </a>
+                <a href="#goals" onclick="switchTab('goals')" class="nav-item flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-white hover:bg-white/5" data-tab="goals">
+                    <i class="fa-solid fa-bullseye w-5 text-center"></i> Savings Goals
+                </a>
+                <a href="#expected" onclick="switchTab('expected')" class="nav-item flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-white hover:bg-white/5" data-tab="expected">
+                    <i class="fa-solid fa-calendar-days w-5 text-center"></i> Expected Expenses
+                </a>
+                <a href="#wishlist" onclick="switchTab('wishlist')" class="nav-item flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-white hover:bg-white/5" data-tab="wishlist">
+                    <i class="fa-solid fa-gift w-5 text-center"></i> Mini Wishlist
+                </a>
+                <a href="#rewards" onclick="switchTab('rewards')" class="nav-item flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-white hover:bg-white/5" data-tab="rewards">
+                    <i class="fa-solid fa-star w-5 text-center"></i> Smart Rewards
+                </a>
+                <a href="#analytics" onclick="switchTab('analytics')" class="nav-item flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-white hover:bg-white/5" data-tab="analytics">
+                    <i class="fa-solid fa-chart-line w-5 text-center"></i> Analytics
+                </a>
+                <a href="#settings" onclick="switchTab('settings')" class="nav-item flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-white hover:bg-white/5" data-tab="settings">
+                    <i class="fa-solid fa-gear w-5 text-center"></i> Settings
+                </a>
+                <a href="#profile" onclick="switchTab('profile')" class="nav-item flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-white hover:bg-white/5" data-tab="profile">
+                    <i class="fa-solid fa-user w-5 text-center"></i> Profile
+                </a>
+            </nav>
+
+            <!-- Sidebar Footer / User Profile snippet -->
+            <div class="p-4 border-t border-white/5">
+                <div class="glass-card p-3 rounded-xl flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div id="sidebar-avatar-container" class="w-9 h-9 rounded-full bg-purple-600 flex items-center justify-center overflow-hidden border border-purple-400/30">
+                            <span id="sidebar-avatar-initial" class="text-white font-bold text-sm">D</span>
+                        </div>
+                        <div class="overflow-hidden">
+                            <h4 id="sidebar-username" class="text-xs font-semibold text-white truncate">Dharani</h4>
+                            <p class="text-[10px] text-slate-400 truncate">Student • FinWise Pro</p>
+                        </div>
+                    </div>
+                    <button onclick="logout()" class="text-slate-400 hover:text-red-400 transition-colors p-1" title="Sign Out">
+                        <i class="fa-solid fa-right-from-bracket text-sm"></i>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="flex-1 flex flex-col h-screen overflow-hidden bg-[#0b0f19]">
+            <!-- Top Header -->
+            <header class="h-20 glass-header flex items-center justify-between px-8 z-20 shrink-0">
+                <div class="flex items-center gap-4">
+                    <button onclick="toggleSidebar()" class="text-slate-400 hover:text-white lg:hidden">
+                        <i class="fa-solid fa-bars text-lg"></i>
+                    </button>
+                    <div>
+                        <h2 id="page-title" class="text-lg font-bold text-white">Dashboard Overview</h2>
+                        <p id="page-subtitle" class="text-xs text-slate-400">Welcome back, Dharani! Here is your financial pulse for today.</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-4">
+                    <!-- Sound Toggle -->
+                    <button onclick="toggleSound()" id="sound-btn" class="w-10 h-10 rounded-xl glass-card flex items-center justify-center text-slate-300 hover:text-purple-400 transition-all" title="Toggle Sound FX">
+                        <i id="sound-icon" class="fa-solid fa-volume-high"></i>
+                    </button>
+
+                    <!-- Quick Add Transaction Button -->
+                    <button onclick="openModal('transactionModal')" class="glossy-button px-4 py-2.5 rounded-xl text-xs font-semibold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-plus"></i> Add Transaction
+                    </button>
+
+                    <!-- Profile Avatar Header Pill -->
+                    <div onclick="switchTab('profile')" class="flex items-center gap-3 pl-2 pr-3 py-1.5 rounded-xl glass-card cursor-pointer hover:border-purple-500/50 transition-all">
+                        <div id="header-avatar-container" class="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center overflow-hidden border border-purple-400/30">
+                            <span id="header-avatar-initial" class="text-white font-bold text-xs">D</span>
+                        </div>
+                        <span id="header-username" class="text-xs font-semibold text-slate-200 hidden sm:inline">Dharani</span>
+                    </div>
+                    <div class="finwise-theme-control">
+                        <button type="button" class="finwise-theme-toggle" onclick="toggleFinWiseThemePanel()" aria-label="Choose accent palette" title="Change colours"><i class="fa-solid fa-palette"></i></button>
+                        <div id="finwise-theme-panel" class="finwise-theme-panel" hidden>
+                            <p class="fw-theme-heading">Choose your accent</p>
+                            <button class="fw-theme-option" type="button" onclick="applyFinWiseTheme('violet')"><span class="fw-theme-dot" style="background:#A78BFA"></span>Violet</button>
+                            <button class="fw-theme-option" type="button" onclick="applyFinWiseTheme('ocean')"><span class="fw-theme-dot" style="background:#38BDF8"></span>Ocean</button>
+                            <button class="fw-theme-option" type="button" onclick="applyFinWiseTheme('sunset')"><span class="fw-theme-dot" style="background:#FB7185"></span>Sunset</button>
+                            <button class="fw-theme-option" type="button" onclick="applyFinWiseTheme('mint')"><span class="fw-theme-dot" style="background:#34D399"></span>Mint</button>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Scrollable Tab Content Viewport -->
+            <div id="content-viewport" class="flex-1 overflow-y-auto p-8 relative">
+                
+                <!-- ==================== TAB 1: DASHBOARD ==================== -->
+                <div id="tab-dashboard" class="tab-content space-y-6">
+                    <!-- Greeting & Duck Tip Banner -->
+                    <div class="glass-card rounded-2xl p-6 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6">
+                        <div class="absolute -right-10 -bottom-10 w-60 h-60 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                        <div class="space-y-2 z-10">
+                            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300 text-xs font-medium">
+                                <i class="fa-solid fa-sparkles"></i> Smart Financial Companion
+                            </div>
+                            <h3 class="text-2xl font-bold text-white">Hello, Dharani! Your savings rate is thriving.</h3>
+                            <p id="duck-tip-box" class="text-sm text-slate-300 max-w-xl">
+                                "Keep your monthly entertainment budget in check! You're only 15% away from unlocking this month's reward milestone."
+                            </p>
+                        </div>
+                        <!-- Animated Duck Mascot in Dashboard -->
+                        <div class="w-32 h-32 relative duck-float shrink-0 cursor-pointer" onclick="triggerDuckTip()" title="Click for advice!">
+                            <svg viewBox="0 0 100 100" class="w-full h-full drop-shadow-lg">
+                                <circle cx="50" cy="50" r="45" fill="rgba(139, 92, 246, 0.1)" class="duck-glow"/>
+                                <path d="M35 75 C 30 75, 25 65, 28 50 C 30 35, 45 25, 60 30 C 75 35, 80 50, 75 68 C 72 78, 60 80, 50 80 Z" fill="#FFFFFF" stroke="#111" stroke-width="4" stroke-linejoin="round"/>
+                                <circle cx="62" cy="32" r="18" fill="#FFFFFF" stroke="#111" stroke-width="4"/>
+                                <circle cx="68" cy="28" r="3" fill="#111"/>
+                                <circle cx="69" cy="27" r="1" fill="#FFF"/>
+                                <ellipse cx="61" cy="36" rx="4" ry="2.5" fill="#FDA4AF" opacity="0.8"/>
+                                <path d="M 78 32 C 85 30, 92 34, 88 38 C 84 42, 80 38, 78 32 Z" fill="#F59E0B" stroke="#111" stroke-width="3" stroke-linejoin="round"/>
+                                <path d="M 42 55 C 52 55, 60 62, 55 72 C 50 78, 40 72, 42 55 Z" fill="#F9FAFB" stroke="#111" stroke-width="3"/>
+                                <path d="M 38 80 L 32 88 L 44 88 Z" fill="#F59E0B" stroke="#111" stroke-width="2.5"/>
+                                <path d="M 60 80 L 56 88 L 68 88 Z" fill="#F59E0B" stroke="#111" stroke-width="2.5"/>
+                                <g transform="translate(43, 62) scale(0.6)">
+                                    <circle cx="10" cy="10" r="5" fill="#F59E0B"/>
+                                    <circle cx="10" cy="2" r="4" fill="#F43F5E"/>
+                                    <circle cx="10" cy="18" r="4" fill="#F43F5E"/>
+                                    <circle cx="2" cy="10" r="4" fill="#F43F5E"/>
+                                    <circle cx="18" cy="10" r="4" fill="#F43F5E"/>
+                                    <circle cx="10" cy="10" r="2.5" fill="#FACC15"/>
+                                </g>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <!-- Financial Overview Cards -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                        <div class="glass-card p-5 rounded-2xl border-l-4 border-l-purple-500">
+                            <p class="text-xs font-medium text-slate-400">Total Income</p>
+                            <h4 id="stat-income" class="text-2xl font-bold text-white mt-1">₹0.00</h4>
+                            <span class="text-[10px] text-emerald-400 font-medium mt-2 inline-flex items-center gap-1">
+                                <i class="fa-solid fa-arrow-trend-up"></i> +12% this month
+                            </span>
+                        </div>
+                        <div class="glass-card p-5 rounded-2xl border-l-4 border-l-red-500">
+                            <p class="text-xs font-medium text-slate-400">Total Expenses</p>
+                            <h4 id="stat-expenses" class="text-2xl font-bold text-white mt-1">₹0.00</h4>
+                            <span class="text-[10px] text-red-400 font-medium mt-2 inline-flex items-center gap-1">
+                                <i class="fa-solid fa-arrow-trend-down"></i> -4% this month
+                            </span>
+                        </div>
+                        <div class="glass-card p-5 rounded-2xl border-l-4 border-l-cyan-500">
+                            <p class="text-xs font-medium text-slate-400">Current Balance</p>
+                            <h4 id="stat-balance" class="text-2xl font-bold text-white mt-1">₹0.00</h4>
+                            <span class="text-[10px] text-cyan-400 font-medium mt-2 inline-flex items-center gap-1">
+                                <i class="fa-solid fa-wallet"></i> Liquid Cash
+                            </span>
+                        </div>
+                        <div class="glass-card p-5 rounded-2xl border-l-4 border-l-amber-500">
+                            <p class="text-xs font-medium text-slate-400">Total Savings</p>
+                            <h4 id="stat-savings" class="text-2xl font-bold text-white mt-1">₹0.00</h4>
+                            <span class="text-[10px] text-amber-400 font-medium mt-2 inline-flex items-center gap-1">
+                                <i class="fa-solid fa-piggy-bank"></i> Goals Funded
+                            </span>
+                        </div>
+                        <div class="glass-card p-5 rounded-2xl border-l-4 border-l-green-500">
+                            <p class="text-xs font-medium text-slate-400">Savings Rate</p>
+                            <h4 id="stat-rate" class="text-2xl font-bold text-white mt-1">0%</h4>
+                            <span class="text-[10px] text-green-400 font-medium mt-2 inline-flex items-center gap-1">
+                                <i class="fa-solid fa-bullseye"></i> Target: 30%
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Charts Grid -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Bar Chart: Income vs Expenses -->
+                        <div class="glass-card p-6 rounded-2xl lg:col-span-2 flex flex-col">
+                            <div class="flex items-center justify-between mb-4">
+                                <h4 class="text-base font-bold text-white">Monthly Cashflow</h4>
+                                <span class="text-xs text-slate-400">Income vs Expenses</span>
+                            </div>
+                            <div class="flex-1 relative min-h-[260px]">
+                                <canvas id="cashflowChart"></canvas>
+                            </div>
+                        </div>
+                        <!-- Doughnut Chart: Expenses by Category -->
+                        <div class="glass-card p-6 rounded-2xl flex flex-col">
+                            <div class="flex items-center justify-between mb-4">
+                                <h4 class="text-base font-bold text-white">Expense Breakdown</h4>
+                                <span class="text-xs text-slate-400">By Category</span>
+                            </div>
+                            <div class="flex-1 relative min-h-[260px] flex items-center justify-center">
+                                <canvas id="expenseDoughnutChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Transactions & Goal Preview -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Recent Transactions -->
+                        <div class="glass-card p-6 rounded-2xl lg:col-span-2 space-y-4">
+                            <div class="flex items-center justify-between">
+                                <h4 class="text-base font-bold text-white">Recent Transactions</h4>
+                                <button onclick="switchTab('transactions')" class="text-xs font-medium text-purple-400 hover:underline">View All</button>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr class="border-b border-white/10 text-xs text-slate-400">
+                                            <th class="py-3 px-2">Description</th>
+                                            <th class="py-3 px-2">Category</th>
+                                            <th class="py-3 px-2">Date</th>
+                                            <th class="py-3 px-2 text-right">Amount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="dashboard-tx-list" class="text-xs divide-y divide-white/5">
+                                        <!-- Populated via JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Savings Goal Widget -->
+                        <div class="glass-card p-6 rounded-2xl space-y-4">
+                            <div class="flex items-center justify-between">
+                                <h4 class="text-base font-bold text-white">Top Savings Goal</h4>
+                                <button onclick="switchTab('goals')" class="text-xs font-medium text-purple-400 hover:underline">Manage</button>
+                            </div>
+                            <div id="dashboard-goal-widget" class="space-y-4">
+                                <!-- Populated via JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ==================== TAB 2: TRANSACTIONS ==================== -->
+                <div id="tab-transactions" class="tab-content hidden space-y-6">
+                    <div class="glass-card p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div class="flex items-center gap-3 w-full md:w-auto">
+                            <div class="relative flex-1 md:w-72">
+                                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-xs"></i>
+                                <input type="text" id="tx-search" placeholder="Search transactions..." oninput="filterTransactions()" class="w-full bg-[#0b0f19] border border-white/10 rounded-xl pl-10 pr-4 py-2 text-xs text-white focus:outline-none focus:border-purple-500">
+                            </div>
+                            <select id="tx-filter-type" onchange="filterTransactions()" class="bg-[#0b0f19] border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-purple-500">
+                                <option value="all">All Types</option>
+                                <option value="income">Income</option>
+                                <option value="expense">Expense</option>
+                            </select>
+                        </div>
+                        <button onclick="openModal('transactionModal')" class="glossy-button px-4 py-2.5 rounded-xl text-xs font-semibold text-white flex items-center gap-2 w-full md:w-auto justify-center">
+                            <i class="fa-solid fa-plus"></i> Add New Transaction
+                        </button>
+                    </div>
+
+                    <div class="glass-card rounded-2xl overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="border-b border-white/10 text-xs text-slate-400 bg-white/5">
+                                        <th class="py-4 px-6">Description</th>
+                                        <th class="py-4 px-4">Category</th>
+                                        <th class="py-4 px-4">Type</th>
+                                        <th class="py-4 px-4">Date</th>
+                                        <th class="py-4 px-4 text-right">Amount</th>
+                                        <th class="py-4 px-6 text-center">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="full-tx-list" class="text-xs divide-y divide-white/5">
+                                    <!-- Populated via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ==================== TAB 3: BUDGETS ==================== -->
+                <div id="tab-budgets" class="tab-content hidden space-y-6">
+                    <div class="glass-card p-6 rounded-2xl flex items-center justify-between">
+                        <div>
+                            <h3 class="text-lg font-bold text-white">Monthly Category Budgets</h3>
+                            <p class="text-xs text-slate-400">Set spending limits and avoid overspending.</p>
+                        </div>
+                        <button onclick="openModal('budgetModal')" class="glossy-button px-4 py-2.5 rounded-xl text-xs font-semibold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-plus"></i> Set Budget
+                        </button>
+                    </div>
+
+                    <div id="budgets-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Populated via JS -->
+                    </div>
+                </div>
+
+                <!-- ==================== TAB 4: SAVINGS GOALS ==================== -->
+                <div id="tab-goals" class="tab-content hidden space-y-6">
+                    <div class="glass-card p-6 rounded-2xl flex items-center justify-between">
+                        <div>
+                            <h3 class="text-lg font-bold text-white">Personal Savings Goals</h3>
+                            <p class="text-xs text-slate-400">Fund your future milestones & dream purchases.</p>
+                        </div>
+                        <button onclick="openModal('goalModal')" class="glossy-button px-4 py-2.5 rounded-xl text-xs font-semibold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-plus"></i> New Savings Goal
+                        </button>
+                    </div>
+
+                    <div id="goals-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Populated via JS -->
+                    </div>
+                </div>
+
+                <!-- ==================== TAB 5: EXPECTED EXPENSES ==================== -->
+                <div id="tab-expected" class="tab-content hidden space-y-6">
+                    <div class="glass-card p-6 rounded-2xl flex items-center justify-between">
+                        <div>
+                            <h3 class="text-lg font-bold text-white">Expected Expenses Planner</h3>
+                            <p class="text-xs text-slate-400">Plan upcoming trips, hangouts, and bills without touching your savings.</p>
+                        </div>
+                        <button onclick="openModal('expectedModal')" class="glossy-button px-4 py-2.5 rounded-xl text-xs font-semibold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-plus"></i> Plan Expense
+                        </button>
+                    </div>
+
+                    <div class="glass-card rounded-2xl overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="border-b border-white/10 text-xs text-slate-400 bg-white/5">
+                                        <th class="py-4 px-6">Title</th>
+                                        <th class="py-4 px-4">Category</th>
+                                        <th class="py-4 px-4">Expected Date</th>
+                                        <th class="py-4 px-4 text-right">Estimated Amount</th>
+                                        <th class="py-4 px-6 text-center">Status</th>
+                                        <th class="py-4 px-6 text-center">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="expected-list" class="text-xs divide-y divide-white/5">
+                                    <!-- Populated via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ==================== TAB 6: MINI WISHLIST ==================== -->
+                <div id="tab-wishlist" class="tab-content hidden space-y-6">
+                    <div class="glass-card p-6 rounded-2xl flex items-center justify-between">
+                        <div>
+                            <h3 class="text-lg font-bold text-white">Mini Wishlist & Smart Rewards Sync</h3>
+                            <p class="text-xs text-slate-400">Connected to your reward allowance to prevent impulsive spending.</p>
+                        </div>
+                        <button onclick="openModal('wishlistModal')" class="glossy-button px-4 py-2.5 rounded-xl text-xs font-semibold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-plus"></i> Add to Wishlist
+                        </button>
+                    </div>
+
+                    <div id="wishlist-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Populated via JS -->
+                    </div>
+                </div>
+
+                <!-- ==================== TAB 7: SMART REWARDS ==================== -->
+                <div id="tab-rewards" class="tab-content hidden space-y-6">
+                    <div class="glass-card p-8 rounded-2xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6">
+                        <div class="space-y-3 z-10">
+                            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-medium">
+                                <i class="fa-solid fa-award"></i> Signature Feature
+                            </div>
+                            <h3 class="text-2xl font-bold text-white">Save More, Earn Rewards</h3>
+                            <p class="text-sm text-slate-300 max-w-xl">
+                                When your actual savings exceed your monthly target, FinWise calculates a guilt-free reward allowance based on your savings percentage. Treat yourself responsibly!
+                            </p>
+                            <div class="flex items-center gap-4 pt-2">
+                                <div class="glass-card px-4 py-2 rounded-xl">
+                                    <span class="text-[10px] text-slate-400 block">Reward Percentage</span>
+                                    <select id="reward-percentage" onchange="calculateRewards()" class="bg-transparent text-white font-bold text-sm focus:outline-none cursor-pointer">
+                                        <option value="10" class="bg-[#0b0f19]">10%</option>
+                                        <option value="20" selected class="bg-[#0b0f19]">20%</option>
+                                        <option value="30" class="bg-[#0b0f19]">30%</option>
+                                    </select>
+                                </div>
+                                <div class="glass-card px-4 py-2 rounded-xl">
+                                    <span class="text-[10px] text-slate-400 block">Available Reward Allowance</span>
+                                    <h4 id="reward-allowance-display" class="text-lg font-bold text-emerald-400">₹0.00</h4>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Celebratory Duck -->
+                        <div class="w-40 h-40 relative duck-celebrate shrink-0">
+                            <svg viewBox="0 0 100 100" class="w-full h-full drop-shadow-xl">
+                                <circle cx="50" cy="50" r="45" fill="rgba(16, 185, 129, 0.15)"/>
+                                <path d="M35 75 C 30 75, 25 65, 28 50 C 30 35, 45 25, 60 30 C 75 35, 80 50, 75 68 C 72 78, 60 80, 50 80 Z" fill="#FFFFFF" stroke="#111" stroke-width="4" stroke-linejoin="round"/>
+                                <circle cx="62" cy="32" r="18" fill="#FFFFFF" stroke="#111" stroke-width="4"/>
+                                <circle cx="68" cy="28" r="3" fill="#111"/>
+                                <circle cx="69" cy="27" r="1" fill="#FFF"/>
+                                <ellipse cx="61" cy="36" rx="4" ry="2.5" fill="#FDA4AF" opacity="0.8"/>
+                                <path d="M 78 32 C 85 30, 92 34, 88 38 C 84 42, 80 38, 78 32 Z" fill="#F59E0B" stroke="#111" stroke-width="3" stroke-linejoin="round"/>
+                                <path d="M 42 55 C 52 55, 60 62, 55 72 C 50 78, 40 72, 42 55 Z" fill="#F9FAFB" stroke="#111" stroke-width="3"/>
+                                <path d="M 38 80 L 32 88 L 44 88 Z" fill="#F59E0B" stroke="#111" stroke-width="2.5"/>
+                                <path d="M 60 80 L 56 88 L 68 88 Z" fill="#F59E0B" stroke="#111" stroke-width="2.5"/>
+                                <!-- Happy Flower -->
+                                <g transform="translate(43, 50) scale(0.8)">
+                                    <circle cx="10" cy="10" r="6" fill="#F59E0B"/>
+                                    <circle cx="10" cy="0" r="5" fill="#10B981"/>
+                                    <circle cx="10" cy="20" r="5" fill="#10B981"/>
+                                    <circle cx="0" cy="10" r="5" fill="#10B981"/>
+                                    <circle cx="20" cy="10" r="5" fill="#10B981"/>
+                                    <circle cx="10" cy="10" r="3" fill="#FACC15"/>
+                                </g>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <!-- Reward Eligible Wishlist Items -->
+                    <div class="space-y-4">
+                        <h4 class="text-base font-bold text-white">Suggested Wishlist Rewards</h4>
+                        <div id="rewards-wishlist-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <!-- Populated via JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ==================== TAB 8: ANALYTICS ==================== -->
+                <div id="tab-analytics" class="tab-content hidden space-y-6">
+                    <div class="glass-card p-6 rounded-2xl flex items-center justify-between">
+                        <div>
+                            <h3 class="text-lg font-bold text-white">Financial Analytics & Trends</h3>
+                            <p class="text-xs text-slate-400">Deep-dive into your spending habits and savings momentum.</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="glass-card p-6 rounded-2xl flex flex-col">
+                            <h4 class="text-base font-bold text-white mb-4">Monthly Spending Trend</h4>
+                            <div class="flex-1 relative min-h-[280px]">
+                                <canvas id="spendingTrendChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="glass-card p-6 rounded-2xl flex flex-col">
+                            <h4 class="text-base font-bold text-white mb-4">Savings Goal Performance</h4>
+                            <div class="flex-1 relative min-h-[280px]">
+                                <canvas id="savingsPerformanceChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ==================== TAB 9: SETTINGS ==================== -->
+                <div id="tab-settings" class="tab-content hidden space-y-6">
+                    <div class="glass-card p-6 rounded-2xl max-w-2xl space-y-6">
+                        <h3 class="text-lg font-bold text-white">Application Settings</h3>
+                        
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between py-3 border-b border-white/5">
+                                <div>
+                                    <h4 class="text-sm font-semibold text-white">Monthly Savings Target</h4>
+                                    <p class="text-xs text-slate-400">Set your baseline monthly savings goal</p>
+                                </div>
+                                <input type="number" id="setting-savings-target" value="5000" class="bg-[#0b0f19] border border-white/10 rounded-xl px-4 py-2 text-xs text-white w-32 focus:outline-none focus:border-purple-500">
+                            </div>
+                            <div class="flex items-center justify-between py-3 border-b border-white/5">
+                                <div>
+                                    <h4 class="text-sm font-semibold text-white">Sound Effects</h4>
+                                    <p class="text-xs text-slate-400">Play subtle audio feedback on actions</p>
+                                </div>
+                                <input type="checkbox" id="setting-sound" checked class="w-4 h-4 accent-purple-500 cursor-pointer">
+                            </div>
+                            <div class="flex items-center justify-between py-3">
+                                <div>
+                                    <h4 class="text-sm font-semibold text-red-400">Reset All Data</h4>
+                                    <p class="text-xs text-slate-400">Clear transactions, budgets, and reset demo state</p>
+                                </div>
+                                <button onclick="resetDemoData()" class="px-4 py-2 bg-red-500/20 border border-red-500/30 text-red-300 rounded-xl text-xs font-semibold hover:bg-red-500/30 transition-all">Reset Data</button>
+                            </div>
+                        </div>
+                        <button onclick="saveSettings()" class="glossy-button px-6 py-2.5 rounded-xl text-xs font-semibold text-white">Save Changes</button>
+                    </div>
+                </div>
+
+                <!-- ==================== TAB 10: PROFILE ==================== -->
+                <div id="tab-profile" class="tab-content hidden space-y-6">
+                    <div class="glass-card p-8 rounded-2xl max-w-2xl space-y-8">
+                        <div class="flex items-center gap-6">
+                            <div id="profile-main-avatar" class="w-20 h-20 rounded-full bg-purple-600 flex items-center justify-center overflow-hidden border-2 border-purple-400/50 shadow-xl shrink-0">
+                                <span id="profile-main-initial" class="text-white font-bold text-2xl">D</span>
+                            </div>
+                            <div>
+                                <h3 id="profile-display-name" class="text-xl font-bold text-white">Dharani</h3>
+                                <p id="profile-display-email" class="text-xs text-slate-400">dharani@finwise.app</p>
+                                <span class="inline-block mt-2 px-3 py-0.5 rounded-full bg-purple-500/20 text-purple-300 text-[10px] font-medium border border-purple-500/30">Student Plan</span>
+                            </div>
+                        </div>
+
+                        <!-- Avatar Gallery (Discord Inspired) -->
+                        <div class="space-y-3">
+                            <label class="text-xs font-semibold text-slate-300">Choose Illustrated Avatar</label>
+                            <div class="grid grid-cols-6 gap-3" id="avatar-gallery">
+                                <!-- Populated via JS -->
+                            </div>
+                        </div>
+
+                        <!-- Profile Edit Form -->
+                        <div class="space-y-4 pt-4 border-t border-white/10">
+                            <div class="space-y-1.5">
+                                <label class="text-xs font-semibold text-slate-300">Display Name</label>
+                                <input type="text" id="profile-name-input" value="Dharani" class="w-full bg-[#0b0f19] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-purple-500">
+                            </div>
+                            <div class="space-y-1.5">
+                                <label class="text-xs font-semibold text-slate-300">Email Address</label>
+                                <input type="email" id="profile-email-input" value="dharani@finwise.app" class="w-full bg-[#0b0f19] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-purple-500">
+                            </div>
+                            <button onclick="saveProfile()" class="glossy-button px-6 py-2.5 rounded-xl text-xs font-semibold text-white">Update Profile</button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- ==================== MODALS ==================== -->
+    
+    <!-- Transaction Modal -->
+    <div id="transactionModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm hidden">
+        <div class="glass-card p-6 rounded-2xl w-full max-w-md space-y-6 relative">
+            <div class="flex items-center justify-between">
+                <h3 class="text-base font-bold text-white">Add Transaction</h3>
+                <button onclick="closeModal('transactionModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="transactionForm" onsubmit="handleTransactionSubmit(event)" class="space-y-4">
+                <div class="space-y-1">
+                    <label class="text-xs font-semibold text-slate-300">Type</label>
+                    <select id="tx-type" class="w-full bg-[#0b0f19] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-purple-500">
+                        <option value="expense">Expense</option>
+                        <option value="income">Income</option>
+                    </select>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xs font-semibold text-slate-300">Amount (₹)</label>
+                    <input type="number" id="tx-amount" step="0.01" required placeholder="0.00" class="w-full bg-[#0b0f19] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-purple-500">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xs font-semibold text-slate-300">Category</label>
+                    <select id="tx-category" class="w-full bg-[#0b0f19] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-purple-500">
+                        <option value="Food">Food</option>
+                        <option value="Travel">Travel</option>
+                        <option value="Shopping">Shopping</option>
+                        <option value="Education">Education</option>
+                        <option value="Entertainment">Entertainment</option>
+                        <option value="Bills">Bills</option>
+                        <option value="Health">Health</option>
+                        <option value="Gifts">Gifts</option>
+                        <option value="Hangouts">Hangouts</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xs font-semibold text-slate-300">Description</label>
+                    <input type="text" id="tx-desc" required placeholder="e.g., College Canteen Lunch" class="w-full bg-[#0b0f19] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-purple-500">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xs font-semibold text-slate-300">Date</label>
+                    <input type="date" id="tx-date" required class="w-full bg-[#0b0f19] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-purple-500">
+                </div>
+                <button type="submit" class="w-full glossy-button py-3 rounded-xl text-xs font-semibold text-white">Save Transaction</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Budget Modal -->
+    <div id="budgetModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm hidden">
+        <div class="glass-card p-6 rounded-2xl w-full max-w-md space-y-6">
+            <div class="flex items-center justify-between">
+                <h3 class="text-base font-bold text-white">Set Category Budget</h3>
+                <button onclick="closeModal('budgetModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="budgetForm" onsubmit="handleBudgetSubmit(event)" class="space-y-4">
+                <div class="space-y-1">
+                    <label class="text-xs font-semibold text-slate-300">Category</label>
+                    <select id="budget-category" class="w-full bg-[#0b0f19] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-purple-500">
+                        <option value="Food">Food</option>
+                        <option value="Travel">Travel</option>
+                        <option value="Shopping">Shopping</option>
+                        <option value="Education">Education</option>
+                        <option value="Entertainment">Entertainment</option>
+                        <option value="Bills">Bills</option>
+                        <option value="Health">Health</option>
+                        <option value="Gifts">Gifts</option>
+                        <option value="Hangouts">Hangouts</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xs font-semibold text-slate-300">Monthly Limit (₹)</label>
+                    <input type="number" id="budget-limit" required placeholder="5000" class="w-full bg-[#0b0f19] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-purple-500">
+                </div>
+                <button type="submit" class="w-full glossy-button py-3 rounded-xl text-xs font-semibold text-white">Save Budget</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Goal Modal -->
+    <div id="goalModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm hidden">
+        <div class="glass-card p-6 rounded-2xl w-full max-w-md space-y-6">
+            <div class="flex items-center justify-between">
+                <h3 class="text-base font-bold text-white">New Savings Goal</h3>
+                <button onclick="closeModal('goalModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="goalForm" onsubmit="handleGoalSubmit(event)" class="space-y-4">
+                <div class="space-y-1">
+                    <label class="text-xs font-semibold text-slate-300">Goal Name</label>
+                    <input type="text" id="goal-name" required placeholder="e.g., New Laptop / Vacation" class="w-full bg-[#0b0f19] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-purple-500">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xs font-semibold text-slate-300">Target Amount (₹)</label>
+                    <input type="number" id="goal-target" required placeholder="50000" class="w-full bg-[#0b0f19] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-purple-500">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xs font-semibold text-slate-300">Current Saved Amount (₹)</label>
+                    <input type="number" id="goal-current" value="0" required class="w-full bg-[#0b0f19] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-purple-500">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xs font-semibold text-slate-300">Target Date</label>
+                    <input type="date" id="goal-date" required class="w-full bg-[#0b0f19] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-purple-500">
+                </div>
+                <button type="submit" class="w-full glossy-button py-3 rounded-xl text-xs font-semibold text-white">Create Goal</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Expected Expense Modal -->
+    <div id="expectedModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm hidden">
+        <div class="glass-card p-6 rounded-2xl w-full max-w-md space-y-6">
+            <div class="flex items-center justify-between">
+                <h3 class="text-base font-bold text-white">Plan Expected Expense</h3>
+                <button onclick="closeModal('expectedModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="expectedForm" onsubmit="handleExpectedSubmit(event)" class="space-y-4">
+                <div class="space-y-1">
+                    <label class="text-xs font-semibold text-slate-300">Title</label>
+                    <input type="text" id="exp-title" required placeholder="e.g., Weekend Trip with Friends" class="w-full bg-[#0b0f19] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-purple-500">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xs font-semibold text-slate-300">Category</label>
+                    <select id="exp-category" class="w-full bg-[#0b0f19] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-purple-500">
+                        <option value="Trips">Trips</option>
+                        <option value="Hangouts">Hangouts</option>
+                        <option value="Gifts">Gifts</option>
+                        <option value="Shopping">Shopping</option>
+                        <option value="Education">Education</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xs font-semibold text-slate-300">Estimated Amount (₹)</label>
+                    <input type="number" id="exp-amount" required placeholder="2500" class="w-full bg-[#0b0f19] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-purple-500">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xs font-semibold text-slate-300">Expected Date</label>
+                    <input type="date" id="exp-date" required class="w-full bg-[#0b0f19] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-purple-500">
+                </div>
+                <button type="submit" class="w-full glossy-button py-3 rounded-xl text-xs font-semibold text-white">Save Plan</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Wishlist Modal -->
+    <div id="wishlistModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm hidden">
+        <div class="glass-card p-6 rounded-2xl w-full max-w-md space-y-6">
+            <div class="flex items-center justify-between">
+                <h3 class="text-base font-bold text-white">Add Item to Wishlist</h3>
+                <button onclick="closeModal('wishlistModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="wishlistForm" onsubmit="handleWishlistSubmit(event)" class="space-y-4">
+                <div class="space-y-1">
+                    <label class="text-xs font-semibold text-slate-300">Item Name</label>
+                    <input type="text" id="wish-name" required placeholder="e.g., Wireless Headphones" class="w-full bg-[#0b0f19] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-purple-500">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xs font-semibold text-slate-300">Estimated Price (₹)</label>
+                    <input type="number" id="wish-price" required placeholder="1999" class="w-full bg-[#0b0f19] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-purple-500">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xs font-semibold text-slate-300">Product Link (Optional)</label>
+                    <input type="url" id="wish-link" placeholder="https://amazon.in/..." class="w-full bg-[#0b0f19] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-purple-500">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xs font-semibold text-slate-300">Priority</label>
+                    <select id="wish-priority" class="w-full bg-[#0b0f19] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-purple-500">
+                        <option value="High">High</option>
+                        <option value="Medium">Medium</option>
+                        <option value="Low">Low</option>
+                    </select>
+                </div>
+                <button type="submit" class="w-full glossy-button py-3 rounded-xl text-xs font-semibold text-white">Add to Wishlist</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Application JavaScript Logic -->
+    <script>
+        // Escape user-entered text before placing it into existing HTML templates.
+        function finwiseEscapeHTML(value) {
+            return String(value ?? '').replace(/[&<>"']/g, character => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[character]));
+        }
+
+        // --- State & Mock Data ---
+        let state = {
+            user: {
+                name: "Dharani",
+                email: "dharani@finwise.app",
+                avatar: "duck"
+            },
+            settings: {
+                savingsTarget: 5000,
+                soundEnabled: true
+            },
+            transactions: [
+                { id: 1, type: "income", amount: 15000, category: "Education", desc: "Monthly Stipend & Allowance", date: "2026-03-01" },
+                { id: 2, type: "expense", amount: 1200, category: "Food", desc: "College Canteen Meals", date: "2026-03-03" },
+                { id: 3, type: "expense", amount: 800, category: "Travel", desc: "Metro & Auto Commute", date: "2026-03-05" },
+                { id: 4, type: "expense", amount: 2500, category: "Shopping", desc: "Stationery & Tech Accessories", date: "2026-03-08" },
+                { id: 5, type: "income", amount: 4000, category: "Other", desc: "Freelance Project Part-time", date: "2026-03-10" }
+            ],
+            budgets: [
+                { category: "Food", limit: 3000 },
+                { category: "Travel", limit: 2000 },
+                { category: "Shopping", limit: 4000 },
+                { category: "Education", limit: 2500 }
+            ],
+            goals: [
+                { id: 1, name: "New Coding Laptop", target: 65000, current: 28000, date: "2026-08-30" },
+                { id: 2, name: "Weekend Trip to Goa", target: 12000, current: 8500, date: "2026-05-15" }
+            ],
+            expected: [
+                { id: 1, title: "Semester Exam Fee", category: "Education", amount: 3500, date: "2026-04-10", paid: false },
+                { id: 2, title: "Friend Birthday Gift", category: "Gifts", amount: 1000, date: "2026-03-25", paid: false }
+            ],
+            wishlist: [
+                { id: 1, name: "Mechanical Keyboard", price: 3499, link: "#", priority: "High", purchased: false },
+                { id: 2, name: "Spotify Premium 6M", price: 719, link: "#", priority: "Medium", purchased: false },
+                { id: 3, name: "Noise Cancelling Earbuds", price: 2499, link: "#", priority: "Low", purchased: false }
+            ]
+        };
+
+        // --- Illustrated Avatars (Discord Style) ---
+        const avatarGalleryData = [
+            { id: "duck", name: "FinWise Duck", svg: '<svg viewBox="0 0 100 100" class="w-full h-full"><circle cx="50" cy="50" r="45" fill="#8B5CF6"/><circle cx="50" cy="42" r="18" fill="#FFF"/><circle cx="56" cy="38" r="3" fill="#111"/><path d="M 66 42 C 72 40, 78 44, 74 48 C 70 52, 66 48, 66 42 Z" fill="#F59E0B"/></svg>' },
+            { id: "cool", name: "Cool Cat", svg: '<svg viewBox="0 0 100 100" class="w-full h-full"><circle cx="50" cy="50" r="45" fill="#06B6D4"/><circle cx="50" cy="50" r="22" fill="#111"/><rect x="35" y="42" width="30" height="12" rx="3" fill="#FFF"/><line x1="25" y1="45" x2="35" y2="45" stroke="#111" stroke-width="3"/></svg>' },
+            { id: "beanie", name: "Beanie Boy", svg: '<svg viewBox="0 0 100 100" class="w-full h-full"><circle cx="50" cy="50" r="45" fill="#F59E0B"/><path d="M 30 45 C 30 25, 70 25, 70 45 Z" fill="#EF4444"/><circle cx="50" cy="20" r="6" fill="#FFF"/><circle cx="42" cy="55" r="3" fill="#111"/><circle cx="58" cy="55" r="3" fill="#111"/></svg>' },
+            { id: "glasses", name: "Smart Glasses", svg: '<svg viewBox="0 0 100 100" class="w-full h-full"><circle cx="50" cy="50" r="45" fill="#16A34A"/><rect x="30" y="40" width="18" height="15" rx="3" fill="none" stroke="#FFF" stroke-width="3"/><rect x="52" y="40" width="18" height="15" rx="3" fill="none" stroke="#FFF" stroke-width="3"/><line x1="48" y1="45" x2="52" y2="45" stroke="#FFF" stroke-width="3"/></svg>' },
+            { id: "star", name: "Starry", svg: '<svg viewBox="0 0 100 100" class="w-full h-full"><circle cx="50" cy="50" r="45" fill="#EC4899"/><polygon points="50,25 56,40 72,42 60,54 63,70 50,61 37,70 40,54 28,42 44,40" fill="#FACC15"/></svg>' },
+            { id: "robot", name: "RoboFin", svg: '<svg viewBox="0 0 100 100" class="w-full h-full"><circle cx="50" cy="50" r="45" fill="#3B82F6"/><rect x="32" y="32" width="36" height="36" rx="8" fill="#1E293B"/><circle cx="42" cy="45" r="4" fill="#06B6D4"/><circle cx="58" cy="45" r="4" fill="#06B6D4"/><rect x="44" y="56" width="12" height="4" rx="2" fill="#16A34A"/></svg>' }
+        ];
+
+        // --- Sound Synthesizer via Tone.js ---
+        let synth = null;
+        function initAudio() {
+            if (!synth) {
+                synth = new Tone.Synth().toDestination();
+            }
+        }
+        function playSound(type = 'click') {
+            if (!state.settings.soundEnabled) return;
+            try {
+                initAudio();
+                Tone.start();
+                if (type === 'success') {
+                    synth.triggerAttackRelease("C5", "8n");
+                    setTimeout(() => synth.triggerAttackRelease("G5", "8n"), 100);
+                } else if (type === 'click') {
+                    synth.triggerAttackRelease("E4", "16n");
+                } else if (type === 'coin') {
+                    synth.triggerAttackRelease("G4", "16n");
+                    setTimeout(() => synth.triggerAttackRelease("B4", "16n"), 80);
+                }
+            } catch (e) {
+                // AudioContext policy bypass fallback
+            }
+        }
+        function toggleSound() {
+            state.settings.soundEnabled = !state.settings.soundEnabled;
+            const btn = document.getElementById('sound-icon');
+            if (state.settings.soundEnabled) {
+                btn.className = "fa-solid fa-volume-high";
+                playSound('click');
+            } else {
+                btn.className = "fa-solid fa-volume-xmark";
+            }
+            if (typeof finwiseSaveSettings === 'function') void finwiseSaveSettings();
+        }
+
+        // --- Duck Tips Array ---
+        const duckTips = [
+            "Keep your monthly entertainment budget in check! You're only 15% away from unlocking your reward milestone.",
+            "Quack! Did you know? Saving just ₹100 a day adds up to ₹36,500 in a year!",
+            "Always reserve upcoming essential expenses before calculating guilt-free reward money.",
+            "Great job keeping your food expenses balanced this week! Quack quack!",
+            "Small consistent savings beat large impulsive deposits every single time."
+        ];
+        function triggerDuckTip() {
+            playSound('coin');
+            const box = document.getElementById('duck-tip-box');
+            const randomTip = duckTips[Math.floor(Math.random() * duckTips.length)];
+            box.innerText = `"${randomTip}"`;
+        }
+
+        // --- Navigation / Tabs ---
+        function switchTab(tabId) {
+            playSound('click');
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+
+            document.querySelectorAll('.nav-item').forEach(el => {
+                el.className = "nav-item flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-white hover:bg-white/5";
+            });
+            const activeNav = document.querySelector(`[data-tab="${tabId}"]`);
+            if (activeNav) {
+                activeNav.className = "nav-item flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium transition-all text-purple-400 bg-purple-500/10 border border-purple-500/20 shadow-sm";
+            }
+
+            const titles = {
+                dashboard: ["Dashboard Overview", "Welcome back, Dharani! Here is your financial pulse for today."],
+                transactions: ["Transaction Management", "Track, filter, search, and manage all your income and expenses."],
+                budgets: ["Category Budgets", "Monitor spending limits and keep your finances healthy."],
+                goals: ["Savings Goals", "Watch your dreams become reality as you fund your goals."],
+                expected: ["Expected Expenses Planner", "Plan upcoming trips, bills, and commitments in advance."],
+                wishlist: ["Mini Wishlist", "Connected to Smart Rewards to help you purchase guilt-free."],
+                rewards: ["Smart Rewards Engine", "Save more than your target and unlock delightful rewards."],
+                analytics: ["Financial Analytics", "Visualize cashflow trends and categorical breakdowns."],
+                settings: ["Application Settings", "Customize your FinWise experience and preferences."],
+                profile: ["User Profile", "Manage your account identity and avatar gallery."]
+            };
+            if (titles[tabId]) {
+                document.getElementById('page-title').innerText = titles[tabId][0];
+                document.getElementById('page-subtitle').innerText = titles[tabId][1];
+            }
+
+            // Render specific tab contents
+            if (tabId === 'dashboard') renderDashboard();
+            if (tabId === 'transactions') renderTransactions();
+            if (tabId === 'budgets') renderBudgets();
+            if (tabId === 'goals') renderGoals();
+            if (tabId === 'expected') renderExpected();
+            if (tabId === 'wishlist') renderWishlist();
+            if (tabId === 'rewards') calculateRewards();
+            if (tabId === 'analytics') renderAnalyticsCharts();
+            if (tabId === 'profile') renderProfileTab();
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('-ml-64');
+        }
+
+        // --- Modals ---
+        function openModal(modalId) {
+            playSound('click');
+            document.getElementById(modalId).classList.remove('hidden');
+            const today = new Date().toISOString().split('T')[0];
+            const dateInput = document.querySelector(`#${modalId} input[type="date"]`);
+            if (dateInput && !dateInput.value) dateInput.value = today;
+        }
+        function closeModal(modalId) {
+            playSound('click');
+            document.getElementById(modalId).classList.add('hidden');
+        }
+
+        // --- Calculations & Financial Engine ---
+        function calculateFinancials() {
+            let totalIncome = 0;
+            let totalExpenses = 0;
+            state.transactions.forEach(t => {
+                if (t.type === 'income') totalIncome += t.amount;
+                else totalExpenses += t.amount;
+            });
+            let balance = totalIncome - totalExpenses;
+            let totalSavings = 0;
+            state.goals.forEach(g => totalSavings += g.current);
+            let savingsRate = totalIncome > 0 ? Math.round((totalSavings / totalIncome) * 100) : 0;
+
+            return { totalIncome, totalExpenses, balance, totalSavings, savingsRate };
+        }
+
+        // --- Render Dashboard ---
+        let cashflowChartInstance = null;
+        let expenseDoughnutInstance = null;
+        let spendingTrendInstance = null;
+        let savingsPerfInstance = null;
+
+        function renderDashboard() {
+            const { totalIncome, totalExpenses, balance, totalSavings, savingsRate } = calculateFinancials();
+            document.getElementById('stat-income').innerText = `₹${totalIncome.toLocaleString('en-IN')}`;
+            document.getElementById('stat-expenses').innerText = `₹${totalExpenses.toLocaleString('en-IN')}`;
+            document.getElementById('stat-balance').innerText = `₹${balance.toLocaleString('en-IN')}`;
+            document.getElementById('stat-savings').innerText = `₹${totalSavings.toLocaleString('en-IN')}`;
+            document.getElementById('stat-rate').innerText = `${savingsRate}%`;
+
+            // Recent Transactions (top 5)
+            const txList = document.getElementById('dashboard-tx-list');
+            txList.innerHTML = '';
+            const recent = [...state.transactions].reverse().slice(0, 5);
+            if (recent.length === 0) {
+                txList.innerHTML = `<tr><td colspan="4" class="py-4 text-center text-slate-500">No transactions recorded yet.</td></tr>`;
+            } else {
+                recent.forEach(t => {
+                    const isInc = t.type === 'income';
+                    txList.innerHTML += `
+                        <tr class="hover:bg-white/5 transition-colors">
+                            <td class="py-3 px-2 font-medium text-white">${finwiseEscapeHTML(t.desc)}</td>
+                            <td class="py-3 px-2"><span class="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-800 text-slate-300 border border-white/5">${finwiseEscapeHTML(t.category)}</span></td>
+                            <td class="py-3 px-2 text-slate-400">${t.date}</td>
+                            <td class="py-3 px-2 text-right font-bold ${isInc ? 'text-emerald-400' : 'text-slate-200'}">${isInc ? '+' : '-'}₹${t.amount.toLocaleString('en-IN')}</td>
+                        </tr>
+                    `;
+                });
+            }
+
+            // Top Goal Widget
+            const goalWidget = document.getElementById('dashboard-goal-widget');
+            goalWidget.innerHTML = '';
+            if (state.goals.length > 0) {
+                const g = state.goals[0];
+                const pct = Math.min(100, Math.round((g.current / g.target) * 100));
+                goalWidget.innerHTML = `
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-xs font-semibold">
+                            <span class="text-white">${finwiseEscapeHTML(g.name)}</span>
+                            <span class="text-purple-400">${pct}%</span>
+                        </div>
+                        <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                            <div class="bg-gradient-to-r from-purple-500 to-cyan-500 h-full rounded-full" style="width: ${pct}%"></div>
+                        </div>
+                        <div class="flex justify-between text-[10px] text-slate-400">
+                            <span>Saved: ₹${g.current.toLocaleString('en-IN')}</span>
+                            <span>Target: ₹${g.target.toLocaleString('en-IN')}</span>
+                        </div>
+                    </div>
+                `;
+            } else {
+                goalWidget.innerHTML = `<p class="text-xs text-slate-500">No savings goals created yet.</p>`;
+            }
+
+            // Render Charts
+            renderDashboardCharts(totalIncome, totalExpenses);
+        }
+
+        function renderDashboardCharts(income, expenses) {
+            // Cashflow Bar Chart
+            const ctx1 = document.getElementById('cashflowChart').getContext('2d');
+            if (cashflowChartInstance) cashflowChartInstance.destroy();
+            cashflowChartInstance = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr'],
+                    datasets: [
+                        { label: 'Income', data: [12000, 14000, income, 0], backgroundColor: '#16A34A', borderRadius: 6 },
+                        { label: 'Expenses', data: [8000, 9500, expenses, 0], backgroundColor: '#EF4444', borderRadius: 6 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: '#94a3b8', font: { size: 11 } } } },
+                    scales: {
+                        x: { ticks: { color: '#94a3b8' }, grid: { display: false } },
+                        y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+                    }
+                }
+            });
+
+            // Doughnut Category Chart
+            const catTotals = {};
+            state.transactions.filter(t => t.type === 'expense').forEach(t => {
+                catTotals[t.category] = (catTotals[t.category] || 0) + t.amount;
+            });
+            const labels = Object.keys(catTotals);
+            const dataVals = Object.values(catTotals);
+
+            const ctx2 = document.getElementById('expenseDoughnutChart').getContext('2d');
+            if (expenseDoughnutInstance) expenseDoughnutInstance.destroy();
+            expenseDoughnutInstance = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: labels.length ? labels : ['No Expenses'],
+                    datasets: [{
+                        data: dataVals.length ? dataVals : [1],
+                        backgroundColor: ['#8B5CF6', '#06B6D4', '#F59E0B', '#16A34A', '#EF4444', '#EC4899', '#3B82F6']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 10 } } } }
+                }
+            });
+        }
+
+        // --- Render Transactions Tab ---
+        function renderTransactions() {
+            const list = document.getElementById('full-tx-list');
+            list.innerHTML = '';
+            const search = document.getElementById('tx-search').value.toLowerCase();
+            const filterType = document.getElementById('tx-filter-type').value;
+
+            const filtered = state.transactions.filter(t => {
+                const matchSearch = t.desc.toLowerCase().includes(search) || t.category.toLowerCase().includes(search);
+                const matchType = filterType === 'all' || t.type === filterType;
+                return matchSearch && matchType;
+            }).reverse();
+
+            if (filtered.length === 0) {
+                list.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-500">No matching transactions found.</td></tr>`;
+                return;
+            }
+
+            filtered.forEach(t => {
+                const isInc = t.type === 'income';
+                list.innerHTML += `
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 font-medium text-white">${finwiseEscapeHTML(t.desc)}</td>
+                        <td class="py-4 px-4"><span class="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-800 text-slate-300 border border-white/5">${finwiseEscapeHTML(t.category)}</span></td>
+                        <td class="py-4 px-4"><span class="px-2 py-0.5 rounded text-[10px] font-medium ${isInc ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}">${t.type.toUpperCase()}</span></td>
+                        <td class="py-4 px-4 text-slate-400">${t.date}</td>
+                        <td class="py-4 px-4 text-right font-bold ${isInc ? 'text-emerald-400' : 'text-slate-200'}">${isInc ? '+' : '-'}₹${t.amount.toLocaleString('en-IN')}</td>
+                        <td class="py-4 px-6 text-center">
+                            <button onclick="deleteTransaction(${t.id})" class="text-slate-500 hover:text-red-400 p-1 transition-colors" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+        function filterTransactions() { renderTransactions(); }
+
+        function handleTransactionSubmit(e) {
+            e.preventDefault();
+            const type = document.getElementById('tx-type').value;
+            const amount = parseFloat(document.getElementById('tx-amount').value);
+            const category = document.getElementById('tx-category').value;
+            const desc = document.getElementById('tx-desc').value;
+            const date = document.getElementById('tx-date').value;
+
+            const transaction = { id: Date.now(), type, amount, category, desc, date };
+            state.transactions.push(transaction);
+            void finwiseSaveTransaction(transaction);
+            playSound('success');
+            closeModal('transactionModal');
+            document.getElementById('transactionForm').reset();
+            renderDashboard();
+            renderTransactions();
+        }
+
+        function deleteTransaction(id) {
+            playSound('click');
+            void finwiseDeleteRecord('transactions', id);
+            state.transactions = state.transactions.filter(t => t.id !== id);
+            renderDashboard();
+            renderTransactions();
+        }
+
+        // --- Render Budgets ---
+        function renderBudgets() {
+            const grid = document.getElementById('budgets-grid');
+            grid.innerHTML = '';
+            
+            // Calculate spent per category
+            const spentMap = {};
+            state.transactions.filter(t => t.type === 'expense').forEach(t => {
+                spentMap[t.category] = (spentMap[t.category] || 0) + t.amount;
+            });
+
+            state.budgets.forEach(b => {
+                const spent = spentMap[b.category] || 0;
+                const pct = Math.min(100, Math.round((spent / b.limit) * 100));
+                let colorClass = 'bg-emerald-500';
+                if (pct > 80) colorClass = 'bg-amber-500';
+                if (pct >= 100) colorClass = 'bg-red-500';
+
+                grid.innerHTML += `
+                    <div class="glass-card p-6 rounded-2xl space-y-4">
+                        <div class="flex items-center justify-between">
+                            <h4 class="text-sm font-bold text-white">${finwiseEscapeHTML(b.category)}</h4>
+                            <span class="text-xs font-semibold text-slate-400">Limit: ₹${b.limit.toLocaleString('en-IN')}</span>
+                        </div>
+                        <div class="space-y-1.5">
+                            <div class="flex justify-between text-xs">
+                                <span class="text-slate-400">Spent: ₹${spent.toLocaleString('en-IN')}</span>
+                                <span class="font-bold ${pct >= 100 ? 'text-red-400' : 'text-white'}">${pct}%</span>
+                            </div>
+                            <div class="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden">
+                                <div class="${colorClass} h-full rounded-full transition-all duration-500" style="width: ${pct}%"></div>
+                            </div>
+                        </div>
+                        ${pct >= 100 ? '<p class="text-[10px] text-red-400 font-medium flex items-center gap-1"><i class="fa-solid fa-triangle-exclamation"></i> Budget limit exceeded!</p>' : ''}
+                    </div>
+                `;
+            });
+        }
+
+        function handleBudgetSubmit(e) {
+            e.preventDefault();
+            const category = document.getElementById('budget-category').value;
+            const limit = parseFloat(document.getElementById('budget-limit').value);
+
+            const existing = state.budgets.find(b => b.category === category);
+            if (existing) {
+                existing.limit = limit;
+            } else {
+                state.budgets.push({ category, limit });
+            }
+            void finwiseSaveBudget(category, limit);
+            playSound('success');
+            closeModal('budgetModal');
+            document.getElementById('budgetForm').reset();
+            renderBudgets();
+        }
+
+        // --- Render Savings Goals ---
+        function renderGoals() {
+            const grid = document.getElementById('goals-grid');
+            grid.innerHTML = '';
+
+            state.goals.forEach(g => {
+                const pct = Math.min(100, Math.round((g.current / g.target) * 100));
+                grid.innerHTML += `
+                    <div class="glass-card p-6 rounded-2xl space-y-4">
+                        <div class="flex items-center justify-between">
+                            <h4 class="text-base font-bold text-white">${finwiseEscapeHTML(g.name)}</h4>
+                            <span class="text-xs text-slate-400"><i class="fa-solid fa-calendar"></i> ${g.date}</span>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="flex justify-between text-xs">
+                                <span class="text-slate-400">Progress</span>
+                                <span class="text-purple-400 font-bold">${pct}%</span>
+                            </div>
+                            <div class="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden">
+                                <div class="bg-gradient-to-r from-purple-500 to-cyan-500 h-full rounded-full" style="width: ${pct}%"></div>
+                            </div>
+                            <div class="flex justify-between text-xs font-semibold">
+                                <span class="text-white">₹${g.current.toLocaleString('en-IN')}</span>
+                                <span class="text-slate-400">₹${g.target.toLocaleString('en-IN')}</span>
+                            </div>
+                        </div>
+                        <button onclick="contributeGoal(${g.id})" class="w-full py-2 bg-purple-500/10 border border-purple-500/20 text-purple-300 rounded-xl text-xs font-semibold hover:bg-purple-500/20 transition-all flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-plus"></i> Add ₹500 Contribution
+                        </button>
+                    </div>
+                `;
+            });
+        }
+
+        function handleGoalSubmit(e) {
+            e.preventDefault();
+            const name = document.getElementById('goal-name').value;
+            const target = parseFloat(document.getElementById('goal-target').value);
+            const current = parseFloat(document.getElementById('goal-current').value);
+            const date = document.getElementById('goal-date').value;
+
+            const goal = { id: Date.now(), name, target, current, date };
+            state.goals.push(goal);
+            void finwiseSaveGoal(goal);
+            playSound('success');
+            closeModal('goalModal');
+            document.getElementById('goalForm').reset();
+            renderGoals();
+        }
+
+        function contributeGoal(id) {
+            playSound('coin');
+            const g = state.goals.find(x => x.id === id);
+            if (g) {
+                g.current += 500;
+                void finwiseSaveGoal(g);
+                renderGoals();
+            }
+        }
+
+        // --- Render Expected Expenses ---
+        function renderExpected() {
+            const list = document.getElementById('expected-list');
+            list.innerHTML = '';
+
+            if (state.expected.length === 0) {
+                list.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-500">No expected expenses planned.</td></tr>`;
+                return;
+            }
+
+            state.expected.forEach(exp => {
+                list.innerHTML += `
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 font-medium text-white">${finwiseEscapeHTML(exp.title)}</td>
+                        <td class="py-4 px-4"><span class="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-800 text-slate-300 border border-white/5">${finwiseEscapeHTML(exp.category)}</span></td>
+                        <td class="py-4 px-4 text-slate-400">${exp.date}</td>
+                        <td class="py-4 px-4 text-right font-bold text-white">₹${exp.amount.toLocaleString('en-IN')}</td>
+                        <td class="py-4 px-6 text-center">
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-medium ${exp.paid ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}">${exp.paid ? 'Paid' : 'Pending'}</span>
+                        </td>
+                        <td class="py-4 px-6 text-center space-x-2">
+                            ${!exp.paid ? `<button onclick="payExpected(${exp.id})" class="px-3 py-1 bg-emerald-500/20 text-emerald-300 rounded-lg text-xs hover:bg-emerald-500/30 transition-all font-medium">Mark Paid</button>` : ''}
+                            <button onclick="deleteExpected(${exp.id})" class="text-slate-500 hover:text-red-400 p-1"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function handleExpectedSubmit(e) {
+            e.preventDefault();
+            const title = document.getElementById('exp-title').value;
+            const category = document.getElementById('exp-category').value;
+            const amount = parseFloat(document.getElementById('exp-amount').value);
+            const date = document.getElementById('exp-date').value;
+
+            const expectedItem = { id: Date.now(), title, category, amount, date, paid: false };
+            state.expected.push(expectedItem);
+            void finwiseSaveExpected(expectedItem);
+            playSound('success');
+            closeModal('expectedModal');
+            document.getElementById('expectedForm').reset();
+            renderExpected();
+        }
+
+        function payExpected(id) {
+            playSound('coin');
+            const exp = state.expected.find(x => x.id === id);
+            if (exp && !exp.paid) {
+                exp.paid = true;
+                void finwiseSaveExpected(exp);
+                // Add as an actual transaction
+                const transaction = {
+                    id: Date.now(), type: 'expense', amount: exp.amount,
+                    category: exp.category, desc: exp.title,
+                    date: new Date().toISOString().split('T')[0]
+                };
+                state.transactions.push(transaction);
+                void finwiseSaveTransaction(transaction);
+                renderExpected();
+                renderDashboard();
+            }
+        }
+
+        function deleteExpected(id) {
+            playSound('click');
+            void finwiseDeleteRecord('expected_expenses', id);
+            state.expected = state.expected.filter(x => x.id !== id);
+            renderExpected();
+        }
+
+        // --- Render Wishlist ---
+        function renderWishlist() {
+            const grid = document.getElementById('wishlist-grid');
+            grid.innerHTML = '';
+
+            state.wishlist.forEach(w => {
+                grid.innerHTML += `
+                    <div class="glass-card p-6 rounded-2xl space-y-4">
+                        <div class="flex items-center justify-between">
+                            <h4 class="text-base font-bold text-white">${finwiseEscapeHTML(w.name)}</h4>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-medium bg-purple-500/10 text-purple-300 border border-purple-500/20">${finwiseEscapeHTML(w.priority)} Priority</span>
+                        </div>
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="text-slate-400">Estimated Price</span>
+                            <span class="text-lg font-bold text-white">₹${w.price.toLocaleString('en-IN')}</span>
+                        </div>
+                        <div class="flex items-center gap-2 pt-2">
+                            <button onclick="purchaseWishlistItem(${w.id})" class="flex-1 py-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 rounded-xl text-xs font-semibold hover:bg-emerald-500/20 transition-all">
+                                <i class="fa-solid fa-check"></i> ${w.purchased ? 'Purchased' : 'Buy Reward'}
+                            </button>
+                            <button onclick="deleteWishlistItem(${w.id})" class="p-2 text-slate-500 hover:text-red-400"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function handleWishlistSubmit(e) {
+            e.preventDefault();
+            const name = document.getElementById('wish-name').value;
+            const price = parseFloat(document.getElementById('wish-price').value);
+            const link = document.getElementById('wish-link').value;
+            const priority = document.getElementById('wish-priority').value;
+
+            const wish = { id: Date.now(), name, price, link, priority, purchased: false };
+            state.wishlist.push(wish);
+            void finwiseSaveWishlistItem(wish);
+            playSound('success');
+            closeModal('wishlistModal');
+            document.getElementById('wishlistForm').reset();
+            renderWishlist();
+        }
+
+        function deleteWishlistItem(id) {
+            playSound('click');
+            void finwiseDeleteRecord('wishlist_items', id);
+            state.wishlist = state.wishlist.filter(w => w.id !== id);
+            renderWishlist();
+        }
+
+        function purchaseWishlistItem(id) {
+            playSound('success');
+            const w = state.wishlist.find(x => x.id === id);
+            if (w && !w.purchased) {
+                w.purchased = true;
+                void finwiseSaveWishlistItem(w);
+                const transaction = {
+                    id: Date.now(), type: 'expense', amount: w.price,
+                    category: 'Shopping', desc: `Smart Reward: ${w.name}`,
+                    date: new Date().toISOString().split('T')[0]
+                };
+                state.transactions.push(transaction);
+                void finwiseSaveTransaction(transaction);
+                renderWishlist();
+                renderDashboard();
+                alert(`Congratulations! You successfully treated yourself to "${w.name}". Duck is celebrating!`);
+            }
+        }
+
+        // --- Smart Rewards Engine ---
+        function calculateRewards() {
+            const { totalIncome, totalExpenses, totalSavings } = calculateFinancials();
+            const monthlyTarget = state.settings.savingsTarget;
+            const extraSavings = Math.max(0, totalSavings - monthlyTarget);
+            const rewardPct = parseInt(document.getElementById('reward-percentage').value) || 20;
+            const allowance = Math.round(extraSavings * (rewardPct / 100));
+
+            document.getElementById('reward-allowance-display').innerText = `₹${allowance.toLocaleString('en-IN')}`;
+
+            // Render Rewards Wishlist suggestions
+            const grid = document.getElementById('rewards-wishlist-grid');
+            grid.innerHTML = '';
+            state.wishlist.forEach(w => {
+                const affordable = w.price <= allowance;
+                grid.innerHTML += `
+                    <div class="glass-card p-6 rounded-2xl space-y-3 border ${affordable ? 'border-emerald-500/30' : 'border-white/5'}">
+                        <div class="flex items-center justify-between">
+                            <h4 class="text-sm font-bold text-white">${finwiseEscapeHTML(w.name)}</h4>
+                            <span class="text-xs font-bold text-white">₹${w.price.toLocaleString('en-IN')}</span>
+                        </div>
+                        <p class="text-xs ${affordable ? 'text-emerald-400 font-medium' : 'text-slate-400'}">
+                            ${affordable ? '✓ Within your reward allowance!' : 'Requires more savings.'}
+                        </p>
+                        ${affordable ? `<button onclick="purchaseWishlistItem(${w.id})" class="w-full py-2 glossy-button rounded-xl text-xs font-semibold text-white">Claim Reward</button>` : ''}
+                    </div>
+                `;
+            });
+        }
+
+        // --- Analytics Charts ---
+        function renderAnalyticsCharts() {
+            const ctx1 = document.getElementById('spendingTrendChart').getContext('2d');
+            if (spendingTrendInstance) spendingTrendInstance.destroy();
+            spendingTrendInstance = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                    datasets: [{
+                        label: 'Weekly Expenses',
+                        data: [2100, 3400, 1800, 2900],
+                        borderColor: getComputedStyle(document.documentElement).getPropertyValue('--fw-accent').trim() || '#8B5CF6',
+                        backgroundColor: `rgba(${getComputedStyle(document.documentElement).getPropertyValue('--fw-accent-rgb').trim() || '167, 139, 250'}, 0.12)`,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: '#94a3b8' } } },
+                    scales: {
+                        x: { ticks: { color: '#94a3b8' }, grid: { display: false } },
+                        y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+                    }
+                }
+            });
+
+            const ctx2 = document.getElementById('savingsPerformanceChart').getContext('2d');
+            if (savingsPerfInstance) savingsPerfInstance.destroy();
+            savingsPerfInstance = new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: state.goals.map(g => g.name),
+                    datasets: [{
+                        label: 'Saved Amount',
+                        data: state.goals.map(g => g.current),
+                        backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--fw-accent-2').trim() || '#06B6D4',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: '#94a3b8' } } },
+                    scales: {
+                        x: { ticks: { color: '#94a3b8' }, grid: { display: false } },
+                        y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+                    }
+                }
+            });
+        }
+
+        // --- Profile & Avatar Gallery ---
+        function renderProfileTab() {
+            document.getElementById('profile-display-name').innerText = state.user.name;
+            document.getElementById('profile-display-email').innerText = state.user.email;
+            document.getElementById('profile-name-input').value = state.user.name;
+            document.getElementById('profile-email-input').value = state.user.email;
+            updateAvatarVisuals();
+
+            const gallery = document.getElementById('avatar-gallery');
+            gallery.innerHTML = '';
+            avatarGalleryData.forEach(av => {
+                const selected = state.user.avatar === av.id;
+                gallery.innerHTML += `
+                    <div onclick="selectAvatar('${av.id}')" class="w-14 h-14 rounded-2xl cursor-pointer p-2 flex items-center justify-center transition-all ${selected ? 'bg-purple-600/30 border-2 border-purple-500 shadow-lg scale-105' : 'glass-card hover:border-white/30'}">
+                        ${av.svg}
+                    </div>
+                `;
+            });
+        }
+
+        function selectAvatar(id) {
+            playSound('click');
+            state.user.avatar = id;
+            renderProfileTab();
+            updateAvatarVisuals();
+            void finwiseSaveSettings();
+        }
+
+        function updateAvatarVisuals() {
+            const avObj = avatarGalleryData.find(a => a.id === state.user.avatar) || avatarGalleryData[0];
+            const initial = state.user.name.charAt(0).toUpperCase();
+
+            // Header avatar
+            document.getElementById('header-avatar-container').innerHTML = avObj.svg;
+            document.getElementById('header-username').innerText = state.user.name;
+
+            // Sidebar avatar
+            document.getElementById('sidebar-avatar-container').innerHTML = avObj.svg;
+            document.getElementById('sidebar-username').innerText = state.user.name;
+
+            // Profile main avatar
+            document.getElementById('profile-main-avatar').innerHTML = avObj.svg;
+        }
+
+        async function saveProfile() {
+            const name = document.getElementById('profile-name-input').value.trim();
+            const email = document.getElementById('profile-email-input').value.trim();
+            if (!name || !email) { alert('Please enter your name and email.'); return; }
+            await finwiseUpdateProfile(name, email);
+        }
+
+        async function saveSettings() {
+            playSound('success');
+            state.settings.savingsTarget = parseFloat(document.getElementById('setting-savings-target').value) || 5000;
+            state.settings.soundEnabled = document.getElementById('setting-sound').checked;
+            const saved = await finwiseSaveSettings();
+            if (saved) alert('Settings saved successfully!');
+        }
+
+        function resetDemoData() {
+            if (confirm('Delete all of your FinWise transactions, budgets, goals, planned expenses and wishlist items? This cannot be undone.')) {
+                void finwiseClearUserData();
+            }
+        }
+
+        // Real sign-out is supplied by js/auth.js after Supabase is initialised.
+        function logout() {
+            return finwiseLogout();
+        }
+
+        // Dashboard rendering is now triggered only after authentication and data loading.
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-config.js"></script>
+    <script src="js/auth.js"></script>
+</body>
+</html>
